@@ -163,7 +163,11 @@ public class BaseActivity extends AppCompatActivity
 		mShowToastTask = new ShowToastTask(msg, args);
 		runOnUiThread(mShowToastTask, 0);
 	}
-
+	protected void showToast(String msg) {
+		removeFromUiThread(mShowToastTask);
+		mShowToastTask = new ShowToastTask(msg);
+		runOnUiThread(mShowToastTask, 0);
+	}
 	/**
 	 * 如果显示Toast，则取消
 	 */
@@ -182,8 +186,12 @@ public class BaseActivity extends AppCompatActivity
 
 	private ShowToastTask mShowToastTask;
 	private final class ShowToastTask implements Runnable {
-		final int msg;
-		final Object args;
+		int msg = 0;
+		Object args = null;
+		String _msg = null;
+		private ShowToastTask(String msg) {
+			this._msg = msg;
+		}
 		private ShowToastTask(@StringRes final int msg, final Object... args) {
 			this.msg = msg;
 			this.args = args;
@@ -196,7 +204,8 @@ public class BaseActivity extends AppCompatActivity
 					mToast.cancel();
 					mToast = null;
 				}
-				final String _msg = (args != null) ? getString(msg, args) : getString(msg);
+				if (_msg == null)
+					_msg = (args != null) ? getString(msg, args) : getString(msg);
 				mToast = Toast.makeText(BaseActivity.this, _msg, Toast.LENGTH_SHORT);
 				mToast.show();
 			} catch (final Exception e) {

@@ -85,10 +85,34 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 		setContentView(R.layout.activity_main);
 
 		mCameraButton = (ToggleButton)findViewById(R.id.camera_button);
-		mCameraButton.setOnCheckedChangeListener(mOnCheckedChangeListener);
+		mCameraButton.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+			@Override
+			public void onCheckedChanged(final CompoundButton buttonView, final boolean isChecked) {
+				synchronized (mSync) {
+					if (isChecked && mUVCCamera == null) {
+						CameraDialog.showDialog(MainActivity.this);
+					} else if (mUVCCamera != null) {
+						mUVCCamera.destroy();
+						mUVCCamera = null;
+					}
+				}
+				updateItems();
+			}
+		});
 
 		mCaptureButton = (ImageButton)findViewById(R.id.capture_button);
-		mCaptureButton.setOnClickListener(mOnClickListener);
+		mCaptureButton.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(final View v) {
+				if (checkPermissionWriteExternalStorage()) {
+					if (mCaptureState == CAPTURE_STOP) {
+						startCapture();
+					} else {
+						stopCapture();
+					}
+				}
+			}
+		});
 
 		mUVCCameraView = (SimpleUVCCameraTextureView)findViewById(R.id.UVCCameraTextureView1);
 		mUVCCameraView.setAspectRatio(UVCCamera.DEFAULT_PREVIEW_WIDTH / (float)UVCCamera.DEFAULT_PREVIEW_HEIGHT);
@@ -141,34 +165,6 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 		mUVCCameraView = null;
 		super.onDestroy();
 	}
-
-	private final OnCheckedChangeListener mOnCheckedChangeListener = new OnCheckedChangeListener() {
-		@Override
-		public void onCheckedChanged(final CompoundButton buttonView, final boolean isChecked) {
-			synchronized (mSync) {
-				if (isChecked && mUVCCamera == null) {
-					CameraDialog.showDialog(MainActivity.this);
-				} else if (mUVCCamera != null) {
-					mUVCCamera.destroy();
-					mUVCCamera = null;
-				}
-			}
-			updateItems();
-		}
-	};
-
-	private final OnClickListener mOnClickListener = new OnClickListener() {
-		@Override
-		public void onClick(final View v) {
-			if (checkPermissionWriteExternalStorage()) {
-				if (mCaptureState == CAPTURE_STOP) {
-					startCapture();
-				} else {
-					stopCapture();
-				}
-			}
-		}
-	};
 
 	private final OnDeviceConnectListener mOnDeviceConnectListener = new OnDeviceConnectListener() {
 		@Override
@@ -270,12 +266,7 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 			@Override
 			public void run() {
 				if (mCameraButton != null) {
-					try {
-						mCameraButton.setOnCheckedChangeListener(null);
-						mCameraButton.setChecked(isOn);
-					} finally {
-						mCameraButton.setOnCheckedChangeListener(mOnCheckedChangeListener);
-					}
+					mCameraButton.setChecked(isOn);
 				}
 				if (!isOn && (mCaptureButton != null)) {
 					mCaptureButton.setVisibility(View.INVISIBLE);

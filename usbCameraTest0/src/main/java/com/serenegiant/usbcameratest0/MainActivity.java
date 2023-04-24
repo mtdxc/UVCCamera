@@ -71,6 +71,7 @@ public class MainActivity extends BaseActivity implements CameraDialog.CameraDia
 	@Override
 	protected void onStart() {
 		super.onStart();
+		checkPermissionCamera();
 		if (DEBUG) { Log.v(TAG, "onStart:"); }
 		synchronized (mSync) {
 			if (mUSBMonitor != null) {

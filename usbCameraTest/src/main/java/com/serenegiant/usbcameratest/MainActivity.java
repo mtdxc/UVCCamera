@@ -72,6 +72,7 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 	@Override
 	protected void onStart() {
 		super.onStart();
+		checkPermissionCamera();
 		mUSBMonitor.register();
 		synchronized (mSync) {
 			if (mUVCCamera != null) {
@@ -97,10 +98,6 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 	protected void onDestroy() {
 		synchronized (mSync) {
 			releaseCamera();
-			if (mToast != null) {
-				mToast.cancel();
-				mToast = null;
-			}
 			if (mUSBMonitor != null) {
 				mUSBMonitor.destroy();
 				mUSBMonitor = null;
@@ -123,13 +120,10 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 			}
 		}
 	};
-
-	private Toast mToast;
-
 	private final OnDeviceConnectListener mOnDeviceConnectListener = new OnDeviceConnectListener() {
 		@Override
 		public void onAttach(final UsbDevice device) {
-			Toast.makeText(MainActivity.this, "USB_DEVICE_ATTACHED", Toast.LENGTH_SHORT).show();
+			showToast("USB_DEVICE_ATTACHED");
 		}
 
 		@Override
@@ -144,43 +138,18 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 						@Override
 						public void onStatus(final int statusClass, final int event, final int selector,
 											 final int statusAttribute, final ByteBuffer data) {
-							runOnUiThread(new Runnable() {
-								@Override
-								public void run() {
-									final Toast toast = Toast.makeText(MainActivity.this, "onStatus(statusClass=" + statusClass
-											+ "; " +
-											"event=" + event + "; " +
-											"selector=" + selector + "; " +
-											"statusAttribute=" + statusAttribute + "; " +
-											"data=...)", Toast.LENGTH_SHORT);
-									synchronized (mSync) {
-										if (mToast != null) {
-											mToast.cancel();
-										}
-										toast.show();
-										mToast = toast;
-									}
-								}
-							});
+							String msg = "onStatus(statusClass=" + statusClass + "; " +
+									"event=" + event + "; " +
+									"selector=" + selector + "; " +
+									"statusAttribute=" + statusAttribute + "; " +
+									"data=...)";
+							showToast(msg);
 						}
 					});
 					camera.setButtonCallback(new IButtonCallback() {
 						@Override
 						public void onButton(final int button, final int state) {
-							runOnUiThread(new Runnable() {
-								@Override
-								public void run() {
-									final Toast toast = Toast.makeText(MainActivity.this, "onButton(button=" + button + "; " +
-											"state=" + state + ")", Toast.LENGTH_SHORT);
-									synchronized (mSync) {
-										if (mToast != null) {
-											mToast.cancel();
-										}
-										mToast = toast;
-										toast.show();
-									}
-								}
-							});
+							showToast("onButton(button=" + button + "; " + "state=" + state + ")");
 						}
 					});
 //					camera.setPreviewTexture(camera.getSurfaceTexture());
@@ -188,6 +157,7 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 						mPreviewSurface.release();
 						mPreviewSurface = null;
 					}
+					showToast("supportSize=" + camera.getSupportedSize());
 					try {
 						camera.setPreviewSize(UVCCamera.DEFAULT_PREVIEW_WIDTH, UVCCamera.DEFAULT_PREVIEW_HEIGHT, UVCCamera.FRAME_FORMAT_MJPEG);
 					} catch (final IllegalArgumentException e) {
@@ -221,7 +191,7 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 
 		@Override
 		public void onDettach(final UsbDevice device) {
-			Toast.makeText(MainActivity.this, "USB_DEVICE_DETACHED", Toast.LENGTH_SHORT).show();
+			showToast("USB_DEVICE_DETACHED");
 		}
 
 		@Override

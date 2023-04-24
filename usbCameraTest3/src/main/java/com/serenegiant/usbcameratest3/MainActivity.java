@@ -107,13 +107,52 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 			setContentView(R.layout.activity_main2);
 		else
 			setContentView(R.layout.activity_main);
+
 		mCameraButton = (ToggleButton)findViewById(R.id.camera_button);
-		mCameraButton.setOnCheckedChangeListener(mOnCheckedChangeListener);
+		mCameraButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+			@Override
+			public void onCheckedChanged(final CompoundButton compoundButton, final boolean isChecked) {
+				if (isChecked && !mCameraHandler.isOpened()) {
+					CameraDialog.showDialog(MainActivity.this);
+				} else {
+					mCameraHandler.close();
+					setCameraButton(false);
+				}
+			}
+		});
+
 		mCaptureButton = (ImageButton)findViewById(R.id.capture_button);
-		mCaptureButton.setOnClickListener(mOnClickListener);
+		mCaptureButton.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(final View view) {
+				if (mCameraHandler.isOpened()) {
+					if (checkPermissionWriteExternalStorage() && checkPermissionAudio()) {
+						if (!mCameraHandler.isRecording()) {
+							mCaptureButton.setColorFilter(0xffff0000);	// turn red
+							mCameraHandler.startRecording();
+						} else {
+							mCaptureButton.setColorFilter(0);	// return to default color
+							mCameraHandler.stopRecording();
+						}
+					}
+				}
+			}
+		});
 		mCaptureButton.setVisibility(View.INVISIBLE);
+
 		final View view = findViewById(R.id.camera_view);
-		view.setOnLongClickListener(mOnLongClickListener);
+		view.setOnLongClickListener(new OnLongClickListener() {
+			@Override
+			public boolean onLongClick(final View view) {
+				if (mCameraHandler.isOpened()) {
+					if (checkPermissionWriteExternalStorage()) {
+						mCameraHandler.captureStill();
+					}
+					return true;
+				}
+				return false;
+			}
+		});
 		mUVCCameraView = (CameraViewInterface)view;
 
 		mUSBMonitor = new LibUVCCameraUSBMonitor(this, mOnDeviceConnectListener);
@@ -158,77 +197,12 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 		super.onDestroy();
 	}
 
-	/**
-	 * event handler when click camera / capture button
-	 */
-	private final OnClickListener mOnClickListener = new OnClickListener() {
-		@Override
-		public void onClick(final View view) {
-			switch (view.getId()) {
-			case R.id.capture_button:
-				if (mCameraHandler.isOpened()) {
-					if (checkPermissionWriteExternalStorage() && checkPermissionAudio()) {
-						if (!mCameraHandler.isRecording()) {
-							mCaptureButton.setColorFilter(0xffff0000);	// turn red
-							mCameraHandler.startRecording();
-						} else {
-							mCaptureButton.setColorFilter(0);	// return to default color
-							mCameraHandler.stopRecording();
-						}
-					}
-				}
-				break;
-			}
-		}
-	};
-
-	private final CompoundButton.OnCheckedChangeListener mOnCheckedChangeListener
-		= new CompoundButton.OnCheckedChangeListener() {
-		@Override
-		public void onCheckedChanged(final CompoundButton compoundButton, final boolean isChecked) {
-			switch (compoundButton.getId()) {
-			case R.id.camera_button:
-				if (isChecked && !mCameraHandler.isOpened()) {
-					CameraDialog.showDialog(MainActivity.this);
-				} else {
-					mCameraHandler.close();
-					setCameraButton(false);
-				}
-				break;
-			}
-		}
-	};
-
-	/**
-	 * capture still image when you long click on preview image(not on buttons)
-	 */
-	private final OnLongClickListener mOnLongClickListener = new OnLongClickListener() {
-		@Override
-		public boolean onLongClick(final View view) {
-			switch (view.getId()) {
-			case R.id.camera_view:
-				if (mCameraHandler.isOpened()) {
-					if (checkPermissionWriteExternalStorage()) {
-						mCameraHandler.captureStill();
-					}
-					return true;
-				}
-			}
-			return false;
-		}
-	};
-
 	private void setCameraButton(final boolean isOn) {
 		runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
 				if (mCameraButton != null) {
-					try {
-						mCameraButton.setOnCheckedChangeListener(null);
-						mCameraButton.setChecked(isOn);
-					} finally {
-						mCameraButton.setOnCheckedChangeListener(mOnCheckedChangeListener);
-					}
+					mCameraButton.setChecked(isOn);
 				}
 				if (!isOn && (mCaptureButton != null)) {
 					mCaptureButton.setVisibility(View.INVISIBLE);

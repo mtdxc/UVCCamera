@@ -31,29 +31,6 @@ public class UvcCameraModule extends ReactContextBaseJavaModule {
   static final int VIDEO_480P = 3;
   static final int VIDEO_4x3 = 4;
 
-  public static final Map<String, Object> VALID_BARCODE_TYPES =
-      Collections.unmodifiableMap(new HashMap<String, Object>() {
-        {
-          put("aztec", BarcodeFormat.AZTEC.toString());
-          put("ean13", BarcodeFormat.EAN_13.toString());
-          put("ean8", BarcodeFormat.EAN_8.toString());
-          put("qr", BarcodeFormat.QR_CODE.toString());
-          put("pdf417", BarcodeFormat.PDF_417.toString());
-          put("upc_e", BarcodeFormat.UPC_E.toString());
-          put("datamatrix", BarcodeFormat.DATA_MATRIX.toString());
-          put("code39", BarcodeFormat.CODE_39.toString());
-          put("code93", BarcodeFormat.CODE_93.toString());
-          put("interleaved2of5", BarcodeFormat.ITF.toString());
-          put("codabar", BarcodeFormat.CODABAR.toString());
-          put("code128", BarcodeFormat.CODE_128.toString());
-          put("maxicode", BarcodeFormat.MAXICODE.toString());
-          put("rss14", BarcodeFormat.RSS_14.toString());
-          put("rssexpanded", BarcodeFormat.RSS_EXPANDED.toString());
-          put("upc_a", BarcodeFormat.UPC_A.toString());
-          put("upc_ean", BarcodeFormat.UPC_EAN_EXTENSION.toString());
-        }
-      });
-
   public UvcCameraModule(ReactApplicationContext reactContext) {
     super(reactContext);
     mScopedContext = new ScopedContext(reactContext);
@@ -78,46 +55,6 @@ public class UvcCameraModule extends ReactContextBaseJavaModule {
         put("AutoFocus", getAutoFocusConstants());
         put("WhiteBalance", getWhiteBalanceConstants());
         put("VideoQuality", getVideoQualityConstants());
-        put("BarCodeType", getBarCodeConstants());
-        put("FaceDetection", Collections.unmodifiableMap(new HashMap<String, Object>() {
-          {
-            put("Mode", getFaceDetectionModeConstants());
-            put("Landmarks", getFaceDetectionLandmarksConstants());
-            put("Classifications", getFaceDetectionClassificationsConstants());
-          }
-
-          private Map<String, Object> getFaceDetectionModeConstants() {
-            return Collections.unmodifiableMap(new HashMap<String, Object>() {
-              {
-                put("fast", RNFaceDetector.FAST_MODE);
-                put("accurate", RNFaceDetector.ACCURATE_MODE);
-              }
-            });
-          }
-
-          private Map<String, Object> getFaceDetectionClassificationsConstants() {
-            return Collections.unmodifiableMap(new HashMap<String, Object>() {
-              {
-                put("all", RNFaceDetector.ALL_CLASSIFICATIONS);
-                put("none", RNFaceDetector.NO_CLASSIFICATIONS);
-              }
-            });
-          }
-
-          private Map<String, Object> getFaceDetectionLandmarksConstants() {
-            return Collections.unmodifiableMap(new HashMap<String, Object>() {
-              {
-                put("all", RNFaceDetector.ALL_LANDMARKS);
-                put("none", RNFaceDetector.NO_LANDMARKS);
-              }
-            });
-          }
-        }));
-        put("GoogleVisionBarcodeDetection", Collections.unmodifiableMap(new HashMap<String, Object>() {
-          {
-            put("BarcodeType", BarcodeFormatUtils.REVERSE_FORMATS);
-          }
-        }));
       }
 
       private Map<String, Object> getTypeConstants() {
@@ -174,9 +111,6 @@ public class UvcCameraModule extends ReactContextBaseJavaModule {
         });
       }
 
-      private Map<String, Object> getBarCodeConstants() {
-        return VALID_BARCODE_TYPES;
-      }
     });
   }
 

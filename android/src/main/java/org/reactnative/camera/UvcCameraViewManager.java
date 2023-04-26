@@ -16,12 +16,6 @@ public class UvcCameraViewManager extends ViewGroupManager<UvcCameraView> {
   public enum Events {
     EVENT_CAMERA_READY("onCameraReady"),
     EVENT_ON_MOUNT_ERROR("onMountError"),
-    EVENT_ON_BAR_CODE_READ("onBarCodeRead"),
-    EVENT_ON_FACES_DETECTED("onFacesDetected"),
-    EVENT_ON_BARCODES_DETECTED("onGoogleVisionBarcodesDetected"),
-    EVENT_ON_FACE_DETECTION_ERROR("onFaceDetectionError"),
-    EVENT_ON_BARCODE_DETECTION_ERROR("onGoogleVisionBarcodeDetectionError"),
-    EVENT_ON_TEXT_RECOGNIZED("onTextRecognized");
 
     private final String mName;
 
@@ -104,23 +98,6 @@ public class UvcCameraViewManager extends ViewGroupManager<UvcCameraView> {
     view.setWhiteBalance(whiteBalance);
   }
 
-  @ReactProp(name = "barCodeTypes")
-  public void setBarCodeTypes(UvcCameraView view, ReadableArray barCodeTypes) {
-    if (barCodeTypes == null) {
-      return;
-    }
-    List<String> result = new ArrayList<>(barCodeTypes.size());
-    for (int i = 0; i < barCodeTypes.size(); i++) {
-      result.add(barCodeTypes.getString(i));
-    }
-    view.setBarCodeTypes(result);
-  }
-
-  @ReactProp(name = "barCodeScannerEnabled")
-  public void setBarCodeScanning(UvcCameraView view, boolean barCodeScannerEnabled) {
-    view.setShouldScanBarCodes(barCodeScannerEnabled);
-  }
-
   @ReactProp(name = "useCamera2Api")
   public void setUseCamera2Api(UvcCameraView view, boolean useCamera2Api) {
     view.setUsingCamera2Api(useCamera2Api);
@@ -129,40 +106,5 @@ public class UvcCameraViewManager extends ViewGroupManager<UvcCameraView> {
   @ReactProp(name = "playSoundOnCapture")
   public void setPlaySoundOnCapture(UvcCameraView view, boolean playSoundOnCapture) {
     view.setPlaySoundOnCapture(playSoundOnCapture);
-  }
-
-  @ReactProp(name = "faceDetectorEnabled")
-  public void setFaceDetecting(UvcCameraView view, boolean faceDetectorEnabled) {
-    view.setShouldDetectFaces(faceDetectorEnabled);
-  }
-
-  @ReactProp(name = "faceDetectionMode")
-  public void setFaceDetectionMode(UvcCameraView view, int mode) {
-    view.setFaceDetectionMode(mode);
-  }
-
-  @ReactProp(name = "faceDetectionLandmarks")
-  public void setFaceDetectionLandmarks(UvcCameraView view, int landmarks) {
-    view.setFaceDetectionLandmarks(landmarks);
-  }
-
-  @ReactProp(name = "faceDetectionClassifications")
-  public void setFaceDetectionClassifications(UvcCameraView view, int classifications) {
-    view.setFaceDetectionClassifications(classifications);
-  }
-
-  @ReactProp(name = "googleVisionBarcodeDetectorEnabled")
-  public void setGoogleVisionBarcodeDetecting(UvcCameraView view, boolean googleBarcodeDetectorEnabled) {
-    view.setShouldGoogleDetectBarcodes(googleBarcodeDetectorEnabled);
-  }
-
-  @ReactProp(name = "googleVisionBarcodeType")
-  public void setGoogleVisionBarcodeType(UvcCameraView view, int barcodeType) {
-    view.setGoogleVisionBarcodeType(barcodeType);
-  }
-
-  @ReactProp(name = "textRecognizerEnabled")
-  public void setTextRecognizing(UvcCameraView view, boolean textRecognizerEnabled) {
-    view.setShouldRecognizeText(textRecognizerEnabled);
   }
 }

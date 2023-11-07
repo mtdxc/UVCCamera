@@ -35,6 +35,7 @@ import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
 import com.serenegiant.dialog.MessageDialogFragmentV4;
@@ -57,7 +58,18 @@ public class BaseActivity extends AppCompatActivity
 	/** 在工作线程上处理的处理程序 */
 	private Handler mWorkerHandler;
 	private long mWorkerThreadID = -1;
-
+	public void hideSysBar() {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+			int uiOptions = getWindow().getDecorView().getSystemUiVisibility();
+			uiOptions |= View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+			uiOptions |= View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+			uiOptions |= View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
+			uiOptions |= View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+			uiOptions |= View.SYSTEM_UI_FLAG_FULLSCREEN;
+			uiOptions |= View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+			getWindow().getDecorView().setSystemUiVisibility(uiOptions);
+		}
+	}
 	@Override
 	protected void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -68,6 +80,11 @@ public class BaseActivity extends AppCompatActivity
 		}
 	}
 
+	@Override
+	protected void onResume() {
+		super.onResume();
+		hideSysBar();
+	}
 	@Override
 	protected void onPause() {
 		clearToast();

@@ -49,8 +49,9 @@ import com.serenegiant.usb_libuvccamera.LibUVCCameraUSBMonitor.UsbControlBlock;
 import com.serenegiant.usb_libuvccamera.UVCCamera;
 import com.serenegiant.utils.ViewAnimationHelper;
 import com.serenegiant.widget.CameraViewInterface;
+import com.serenegiant.widget.UVCCameraTextureView;
 
-public final class MainActivity extends BaseActivity implements CameraDialog.CameraDialogParent {
+public final class MainActivity extends BaseActivity implements CameraDialog.CameraDialogParent, UVCCameraTextureView.IZoomCallback  {
 	private static final boolean DEBUG = true;	// TODO set false on release
 	private static final String TAG = "MainActivity";
 
@@ -109,7 +110,11 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 	private View mResetButton;
 	private View mToolsLayout, mValueLayout;
 	private SeekBar mSettingSeekbar;
+	
+	@Override
+	public void onZoomView(int zoom) {
 
+	}
 	@Override
 	protected void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -120,7 +125,9 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 		mCaptureButton = (ImageButton)findViewById(R.id.capture_button);
 		mCaptureButton.setOnClickListener(mOnClickListener);
 		mCaptureButton.setVisibility(View.INVISIBLE);
-		final View view = findViewById(R.id.camera_view);
+
+		final UVCCameraTextureView view = findViewById(R.id.camera_view);
+		view.setZoomAble(true, this);
 		view.setOnLongClickListener(mOnLongClickListener);
 		mUVCCameraView = (CameraViewInterface)view;
 

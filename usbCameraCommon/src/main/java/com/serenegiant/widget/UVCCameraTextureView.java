@@ -25,14 +25,20 @@ package com.serenegiant.widget;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
+import android.graphics.PointF;
 import android.graphics.SurfaceTexture;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.Surface;
 import android.view.TextureView;
+import android.view.View;
 
 import com.serenegiant.encoder.IVideoEncoder;
 import com.serenegiant.encoder.MediaEncoder;
@@ -50,38 +56,145 @@ import com.serenegiant.utils.FpsCounter;
  */
 public class UVCCameraTextureView extends AspectRatioTextureView    // API >= 14
 	implements TextureView.SurfaceTextureListener, CameraViewInterface {
+	public static interface IZoomCallback {
+		public void onZoomView(int zoom);
+	}
 
 	private static final boolean DEBUG = true;	// TODO set false on release
 	private static final String TAG = "UVCCameraTextureView";
 
-    private boolean mHasSurface;
+	private boolean mHasSurface;
 	private RenderHandler mRenderHandler;
-    private final Object mCaptureSync = new Object();
-    private Bitmap mTempBitmap;
-    private boolean mReqesutCaptureStillImage;
+	private final Object mCaptureSync = new Object();
+	private Bitmap mTempBitmap;
+	private boolean mReqesutCaptureStillImage;
 	private Callback mCallback;
+
+	///////////////////////////
+	public static final float MAX_ZOOM_GESTURE_SIZE = 2.5f; // This affects the pinch to zoom gesture
+
+	public ScaleGestureDetector mScaleGestureDetector;
+	private float mSavedScaleFactor = 1.0f;
+	private int mMaxZoom;
+	Context mContext;
+
+	IZoomCallback mZoomCallback;
+
+	///////////////////
+	private static final String SUPERSTATE_KEY = "superState";
+	private static final String MIN_SCALE_KEY = "minScale";
+	private static final String MAX_SCALE_KEY = "maxScale";
+
+	private float minScale = 1f;
+	private float maxScale = 5f;
+	private float saveScale = 1f;
+
+	public void setMinScale(float scale) {
+		if (scale < 1.0f || scale > maxScale)
+			throw new RuntimeException("minScale can't be lower than 1 or larger than maxScale(" + maxScale + ")");
+		else minScale = scale;
+	}
+
+	public void setMaxScale(float scale) {
+		if (scale < 1.0f || scale < minScale)
+			throw new RuntimeException("maxScale can't be lower than 1 or minScale(" + minScale + ")");
+		else minScale = scale;
+	}
+
+	private static final int NONE = 0;
+	private static final int DRAG = 1;
+	private static final int ZOOM = 2;
+	private int mode = NONE;
+
+	private Matrix matrix = new Matrix();
+	private ScaleGestureDetector mScaleDetector;
+	private GestureDetector mSimpleDetector;
+	private float[] m;
+
+	private PointF last = new PointF();
+	private PointF start = new PointF();
+	private float right, bottom;
+	public int mX, mY, mDeltaX, mDeltaY;
+
 	/** for calculation of frame rate */
 	private final FpsCounter mFpsCounter = new FpsCounter();
 
 	public UVCCameraTextureView(final Context context) {
 		this(context, null, 0);
+		mContext = context;
+		initView(null);
 	}
 
 	public UVCCameraTextureView(final Context context, final AttributeSet attrs) {
 		this(context, attrs, 0);
+		mContext = context;
+		initView(null);
 	}
 
 	public UVCCameraTextureView(final Context context, final AttributeSet attrs, final int defStyle) {
 		super(context, attrs, defStyle);
 		setSurfaceTextureListener(this);
+		mContext = context;
+		initView(null);
+	}
+	private void initView(AttributeSet attrs) {
+		/*
+		TypedArray a = mContext.getTheme().obtainStyledAttributes(
+				attrs, R.styleable.ZoomableTextureView,
+				0, 0);
+		try {
+			minScale = a.getFloat(R.styleable.ZoomableTextureView_minScale, minScale);
+			maxScale = a.getFloat(R.styleable.ZoomableTextureView_maxScale, maxScale);
+		} finally {
+			a.recycle();
+		}
+		*/
+		//setOnTouchListener(new ZoomOnTouchListeners());
+	}
+	public void setZoomAble(boolean zoom, IZoomCallback cb) {
+		if (zoom){
+			setOnTouchListener(new ZoomOnTouchListeners());
+			mZoomCallback = cb;
+		}
+		else{
+			setOnTouchListener(null);
+			mZoomCallback = null;
+		}
 	}
 
 	@Override
 	public void onResume() {
+		matrix = new Matrix();
 		if (DEBUG) Log.v(TAG, "onResume:");
 		if (mHasSurface) {
 			mRenderHandler = RenderHandler.createHandler(mFpsCounter, super.getSurfaceTexture(), getWidth(), getHeight());
 		}
+
+		// Scale gesture detector is used to capture pinch to zoom
+		mScaleGestureDetector = new ScaleGestureDetector(mContext, new ScaleGestureDetector.OnScaleGestureListener() {
+			@Override
+			public boolean onScaleBegin(ScaleGestureDetector detector) {
+				return true;
+			}
+
+			@Override
+			public boolean onScale(ScaleGestureDetector detector) {
+				setCameraZoom(detector.getScaleFactor() * mSavedScaleFactor);
+				return false;
+			}
+
+			@Override
+			public void onScaleEnd(ScaleGestureDetector detector) {
+				// Set saved scale factor and make sure it's within legal range
+				mSavedScaleFactor = mSavedScaleFactor * detector.getScaleFactor();
+				if (mSavedScaleFactor < 1.0f) {
+					mSavedScaleFactor = 1.0f;
+				} else if (mSavedScaleFactor > MAX_ZOOM_GESTURE_SIZE + 1) {
+					mSavedScaleFactor = MAX_ZOOM_GESTURE_SIZE + 1;
+				}
+				setCameraZoom(mSavedScaleFactor);
+			}
+		});
 	}
 
 	@Override
@@ -109,6 +222,27 @@ public class UVCCameraTextureView extends AspectRatioTextureView    // API >= 14
 		if (mCallback != null) {
 			mCallback.onSurfaceCreated(this, getSurface());
 		}
+	}
+
+	private void setCameraZoom(float zoomScaleFactor) {
+		// Convert gesture to camera zoom value
+		int zoom = (int) ((zoomScaleFactor - 1) * mMaxZoom / MAX_ZOOM_GESTURE_SIZE);
+		Log.e("zoomfactor", "fact "+zoomScaleFactor);
+		// Sanity check for zoom level
+		if (zoom > mMaxZoom) {
+			zoom = mMaxZoom;
+		} else if (zoom < 0) {
+			zoom = 0;
+		}
+		int zoomVal = (int) zoomScaleFactor;
+		if (mZoomCallback!=null)
+			mZoomCallback.onZoomView(zoomVal);
+		// Update the camera with the new zoom if it is supported
+//        Camera.Parameters parameters = mCamera.getParameters();
+//        if (parameters.isZoomSupported()) {
+//            parameters.setZoom(zoom);
+//            mCamera.setParameters(parameters);
+//        }
 	}
 
 	@Override
@@ -592,4 +726,143 @@ public class UVCCameraTextureView extends AspectRatioTextureView    // API >= 14
 	    	}
 		}
 	}
+
+private class ZoomOnTouchListeners implements View.OnTouchListener {
+	public ZoomOnTouchListeners() {
+		super();
+		m = new float[9];
+		mScaleDetector = new ScaleGestureDetector(mContext, new ScaleListener());
+		mSimpleDetector = new GestureDetector(new GestureDetector.SimpleOnGestureListener() {
+			// 用到的双击的方法
+			@Override
+			public boolean onDoubleTap(MotionEvent e) {
+				Log.d(TAG, "onDoubleTap");
+				mode = NONE;
+				matrix.reset();
+				saveScale = 1;
+				//UVCCameraTextureView.this.setTransform(matrix);
+				//UVCCameraTextureView.this.invalidate();
+				return true;
+			}
+		});
+	}
+
+	@Override
+	public boolean onTouch(View view, MotionEvent motionEvent) {
+		mSimpleDetector.onTouchEvent(motionEvent);
+		mScaleDetector.onTouchEvent(motionEvent);
+
+		matrix.getValues(m);
+		float x = m[Matrix.MTRANS_X];
+		float y = m[Matrix.MTRANS_Y];
+		PointF curr = new PointF(motionEvent.getX(), motionEvent.getY());
+		//PointF curr = new PointF(0, 0);
+		Log.e("zoomCOORDINATES", "X :"+x+", Y :"+y);
+
+		switch (motionEvent.getActionMasked()) {
+			case MotionEvent.ACTION_DOWN:
+				last.set(motionEvent.getX(), motionEvent.getY());
+				start.set(last);
+				mode = DRAG;
+				break;
+			case MotionEvent.ACTION_UP:
+				mode = NONE;
+				break;
+			case MotionEvent.ACTION_POINTER_DOWN:
+				last.set(motionEvent.getX(), motionEvent.getY());
+				start.set(last);
+				mode = ZOOM;
+				break;
+			case MotionEvent.ACTION_POINTER_UP:
+				mode = NONE;
+				break;
+			case MotionEvent.ACTION_MOVE:
+				if (mode == ZOOM || (mode == DRAG && saveScale > minScale)) {
+					float deltaX = curr.x - last.x;// x difference
+					float deltaY = curr.y - last.y;// y difference
+					if (y + deltaY > 0)
+						deltaY = -y;
+					else if (y + deltaY < -bottom)
+						deltaY = -(y + bottom);
+
+					if (x + deltaX > 0)
+						deltaX = -x;
+					else if (x + deltaX < -right)
+						deltaX = -(x + right);
+					matrix.postTranslate(deltaX, deltaY);
+					last.set(curr.x, curr.y);
+					Log.e("COORDINATES", "X :"+deltaX+", Y :"+deltaY);
+				}
+				break;
+		}
+		UVCCameraTextureView.this.setTransform(matrix);
+		UVCCameraTextureView.this.invalidate();
+		return true;
+	}
+
+	private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
+		@Override
+		public boolean onScaleBegin(ScaleGestureDetector detector) {
+			mode = ZOOM;
+			return true;
+		}
+
+		@Override
+		public boolean onScale(ScaleGestureDetector detector) {
+			float mScaleFactor = detector.getScaleFactor();
+			float origScale = saveScale;
+			saveScale *= mScaleFactor;
+			Log.d(TAG, String.format("onScale %f %f", mScaleFactor, saveScale));
+			if (saveScale > maxScale) {
+				saveScale = maxScale;
+				mScaleFactor = maxScale / origScale;
+			} else if (saveScale < minScale) {
+				saveScale = minScale;
+				mScaleFactor = minScale / origScale;
+			}
+			right = getWidth() * saveScale - getWidth();
+			bottom = getHeight() * saveScale - getHeight();
+			if (0 <= getWidth() || 0 <= getHeight()) {
+				// matrix.postScale(mScaleFactor, mScaleFactor, detector.getFocusX(), detector.getFocusY());
+				matrix.postScale(mScaleFactor, mScaleFactor, 0,0);
+				if (mScaleFactor < 1) {
+					matrix.getValues(m);
+					float x = m[Matrix.MTRANS_X];
+					float y = m[Matrix.MTRANS_Y];
+					if (mScaleFactor < 1) {
+						if (0 < getWidth()) {
+							if (y < -bottom)
+								matrix.postTranslate(0, -(y + bottom));
+							else if (y > 0)
+								matrix.postTranslate(0, -y);
+						} else {
+							if (x < -right)
+								matrix.postTranslate(-(x + right), 0);
+							else if (x > 0)
+								matrix.postTranslate(-x, 0);
+						}
+					}
+				}
+			} else {
+				// matrix.postScale(mScaleFactor, mScaleFactor, detector.getFocusX(), detector.getFocusY());
+				matrix.postScale(mScaleFactor, mScaleFactor, 0,0);
+				matrix.getValues(m);
+				float x = m[Matrix.MTRANS_X];
+				float y = m[Matrix.MTRANS_Y];
+				if (mScaleFactor < 1) {
+					if (x < -right)
+						matrix.postTranslate(-(x + right), 0);
+					else if (x > 0)
+						matrix.postTranslate(-x, 0);
+					if (y < -bottom)
+						matrix.postTranslate(0, -(y + bottom));
+					else if (y > 0)
+						matrix.postTranslate(0, -y);
+				}
+			}
+			return true;
+		}
+	}
+}
+
 }

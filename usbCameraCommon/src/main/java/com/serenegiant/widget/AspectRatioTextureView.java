@@ -39,7 +39,7 @@ public class AspectRatioTextureView extends TextureView	// API >= 14
 	private static final boolean DEBUG = true;	// TODO set false on release
 	private static final String TAG = "AbstractCameraView";
 
-    private double mRequestedAspect = -1.0;
+	private double mRequestedAspect = -1.0;
 	private CameraViewInterface.Callback mCallback;
 
 	public AspectRatioTextureView(final Context context) {
@@ -64,31 +64,26 @@ public class AspectRatioTextureView extends TextureView	// API >= 14
 		return SCALE_MODE_KEEP_ASPECT;
 	}
 
+	public void setAspectRatio(final double aspectRatio) {
+		if (aspectRatio < 0) {
+			throw new IllegalArgumentException();
+		}
+		if (mRequestedAspect != aspectRatio) {
+			mRequestedAspect = aspectRatio;
+			requestLayout();
+		}
+	}
 
-//
-//	@Override
-//    public void setAspectRatio(final double aspectRatio) {
-//        if (aspectRatio < 0) {
-//            throw new IllegalArgumentException();
-//        }
-//        if (mRequestedAspect != aspectRatio) {
-//            mRequestedAspect = aspectRatio;
-//            requestLayout();
-//        }
-//    }
-//
-//	@Override
-//    public void setAspectRatio(final int width, final int height) {
-//		setAspectRatio(width / (double)height);
-//    }
-//
-//	@Override
-//	public double getAspectRatio() {
-//		return mRequestedAspect;
-//	}
+	public void setAspectRatio(final int width, final int height) {
+		setAspectRatio(width / (double)height);
+	}
 
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+	public double getAspectRatio() {
+		return mRequestedAspect;
+	}
+
+	@Override
+	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 
 		if (mRequestedAspect > 0) {
 			int initialWidth = MeasureSpec.getSize(widthMeasureSpec);
@@ -117,7 +112,7 @@ public class AspectRatioTextureView extends TextureView	// API >= 14
 			}
 		}
 
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-    }
+		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+	}
 
 }

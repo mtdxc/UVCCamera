@@ -964,8 +964,8 @@ public final class LibUVCCameraUSBMonitor {
 			if (DEBUG) Log.i(TAG, "UsbControlBlock:constructor");
 			mWeakMonitor = new WeakReference<LibUVCCameraUSBMonitor>(monitor);
 			mWeakDevice = new WeakReference<UsbDevice>(device);
-			mConnection = monitor.mUsbManager.openDevice(device);
 			mInfo = updateDeviceInfo(monitor.mUsbManager, device, null);
+			mConnection = monitor.mUsbManager.openDevice(device);
 			final String name = device.getDeviceName();
 			final String[] v = !TextUtils.isEmpty(name) ? name.split("/") : null;
 			int busnum = 0;

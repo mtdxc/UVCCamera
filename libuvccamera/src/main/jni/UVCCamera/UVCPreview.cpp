@@ -1031,7 +1031,11 @@ void UVCPreview::do_capture_callback(JNIEnv *env, uvc_frame_t *frame) {
 			}
 			// NewDirectByteBuffer 基于指定内存地址创建指定长度可直接访问的内存
 			jobject buf = env->NewDirectByteBuffer(callback_frame->data, callbackPixelBytes);
-			env->CallVoidMethod(mFrameCallbackObj, iframecallback_fields.onFrame, buf);
+			pthread_mutex_lock(&capture_mutex); // BM added from https://github.com/saki4510t/UVCCamera/issues/244#issuecomment-397502197
+			if (iframecallback_fields.onFrame != NULL) {
+				env->CallVoidMethod(mFrameCallbackObj, iframecallback_fields.onFrame, buf);
+			}
+			pthread_mutex_unlock(&capture_mutex);
 			env->ExceptionClear();
 			env->DeleteLocalRef(buf);
 		}

@@ -32,5 +32,4 @@ ext {
 	versionNameString = '1.0.0'
 	javaSourceCompatibility = JavaVersion.VERSION_1_8
 	javaTargetCompatibility = JavaVersion.VERSION_1_8
-	ndkVersion = '25.2.9519653'
 }

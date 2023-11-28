@@ -71,7 +71,7 @@ UVCPreview::UVCPreview(uvc_device_handle_t *devh)
 	captureQueu(NULL),
 	// 帧回调Java对象
 	mFrameCallbackObj(NULL),
-    // 像素格式转换方法
+	// 像素格式转换方法
 	mFrameCallbackFunc(NULL),
 	callbackPixelBytes(2) {
 
@@ -81,7 +81,7 @@ UVCPreview::UVCPreview(uvc_device_handle_t *devh)
 //
 	pthread_cond_init(&capture_sync, NULL);
 	pthread_mutex_init(&capture_mutex, NULL);
-//	
+//
 	pthread_mutex_init(&pool_mutex, NULL);
 
 	EXIT();
@@ -91,8 +91,8 @@ UVCPreview::~UVCPreview() {
 
 	ENTER();
 	if(rotateImage){
-	    SAFE_DELETE(rotateImage);
-    }
+		SAFE_DELETE(rotateImage);
+	}
 	if (mPreviewWindow)
 		ANativeWindow_release(mPreviewWindow);
 	mPreviewWindow = NULL;
@@ -126,10 +126,10 @@ uvc_frame_t *UVCPreview::get_frame(size_t data_bytes) {
 		if (!mFramePool.isEmpty()) {
 			frame = mFramePool.last();
 			if(frame->data_bytes < data_bytes){
-			    mFramePool.put(frame);
-			    frame = NULL;
+				mFramePool.put(frame);
+				frame = NULL;
 			}else{
-			    frame->actual_bytes = data_bytes;
+				frame->actual_bytes = data_bytes;
 			}
 		}
 	}
@@ -154,7 +154,7 @@ void UVCPreview::recycle_frame(uvc_frame_t *frame) {
 	}
 	pthread_mutex_unlock(&pool_mutex);
 	if (UNLIKELY(frame)) {
-	    // 释放帧数据内存
+		// 释放帧数据内存
 		uvc_free_frame(frame);
 	}
 }
@@ -187,7 +187,7 @@ void UVCPreview::clear_pool() {
 	{
 		const int n = mFramePool.size();
 		for (int i = 0; i < n; i++) {
-		    // 释放帧数据内存
+			// 释放帧数据内存
 			uvc_free_frame(mFramePool[i]);
 		}
 		mFramePool.clear();
@@ -201,7 +201,7 @@ inline const bool UVCPreview::isRunning() const {return mIsRunning; }
 // 设置预览参数
 int UVCPreview::setPreviewSize(int width, int height, int cameraAngle, int min_fps, int max_fps, int mode, float bandwidth) {
 	ENTER();
-	
+
 	int result = 0;
 	if ((requestWidth != width) || (requestHeight != height) || (requestMode != mode)) {
 		requestWidth = width;
@@ -223,7 +223,7 @@ int UVCPreview::setPreviewSize(int width, int height, int cameraAngle, int min_f
 	if( (frameHorizontalMirror || frameVerticalMirror || frameRotationAngle) && !rotateImage) {
 		rotateImage = new RotateImage();
 	}
-	
+
 	RETURN(result, int);
 }
 
@@ -237,11 +237,11 @@ int UVCPreview::setPreviewDisplay(ANativeWindow *preview_window) {
 				ANativeWindow_release(mPreviewWindow);
 			mPreviewWindow = preview_window;
 			if (LIKELY(mPreviewWindow)) {
-			    if(rotateImage && (frameRotationAngle==90 || frameRotationAngle==270)){
-			        ANativeWindow_setBuffersGeometry(mPreviewWindow, frameHeight, frameWidth, previewFormat);
-                }else{
-				    ANativeWindow_setBuffersGeometry(mPreviewWindow, frameWidth, frameHeight, previewFormat);
-                }
+				if(rotateImage && (frameRotationAngle==90 || frameRotationAngle==270)){
+					ANativeWindow_setBuffersGeometry(mPreviewWindow, frameHeight, frameWidth, previewFormat);
+				}else{
+					ANativeWindow_setBuffersGeometry(mPreviewWindow, frameWidth, frameHeight, previewFormat);
+				}
 			}
 		}
 	}
@@ -251,7 +251,7 @@ int UVCPreview::setPreviewDisplay(ANativeWindow *preview_window) {
 
 // 设置帧回调
 int UVCPreview::setFrameCallback(JNIEnv *env, jobject frame_callback_obj, int pixel_format) {
-	
+
 	ENTER();
 	pthread_mutex_lock(&capture_mutex);
 	{
@@ -331,14 +331,14 @@ void UVCPreview::callbackPixelFormatChanged() {
 		break;
 	  case PIXEL_FORMAT_NV21:
 		// LOGI("PIXEL_FORMAT_NV21:");
-	    // NV21: YYYYYYYY VUVU   => YUV420SP
+		// NV21: YYYYYYYY VUVU   => YUV420SP
 		mFrameCallbackFunc = uvc_yuyv2iyuv420SP;
 		callbackPixelBytes = (sz * 3) / 2;
 		break;
 	  case PIXEL_FORMAT_BGR:
-	    mFrameCallbackFunc = uvc_any2bgr;
-      	callbackPixelBytes = sz * 3;
-      	break;
+		mFrameCallbackFunc = uvc_any2bgr;
+		callbackPixelBytes = sz * 3;
+		break;
 	}
 }
 
@@ -393,7 +393,7 @@ int UVCPreview::startPreview() {
 		pthread_mutex_lock(&preview_mutex);
 		{
 			//if (LIKELY(mPreviewWindow)) {
-			    // 创建线程执行 preview_thread_func
+				// 创建线程执行 preview_thread_func
 				result = pthread_create(&preview_thread, NULL, preview_thread_func, (void *)this);
 			//}
 		}
@@ -462,7 +462,7 @@ void UVCPreview::uvc_preview_frame_callback(uvc_frame_t *frame, void *vptr_args)
 		return;
 	}
 	if (LIKELY(preview->isRunning())) {
-	    // 从帧池中获取帧
+		// 从帧池中获取帧
 		uvc_frame_t *copy = preview->get_frame(frame->actual_bytes);
 		if (UNLIKELY(!copy)) {
 #if LOCAL_DEBUG
@@ -473,7 +473,7 @@ void UVCPreview::uvc_preview_frame_callback(uvc_frame_t *frame, void *vptr_args)
 		// 复制帧，保留色彩格式
 		uvc_error_t ret = uvc_duplicate_frame(frame, copy);
 		if (UNLIKELY(ret)) {
-		    // 放回帧池
+			// 放回帧池
 			preview->recycle_frame(copy);
 			return;
 		}
@@ -486,7 +486,7 @@ void UVCPreview::uvc_preview_frame_callback(uvc_frame_t *frame, void *vptr_args)
 void UVCPreview::addPreviewFrame(uvc_frame_t *frame) {
 	pthread_mutex_lock(&preview_mutex);
 	if (isRunning() && (previewFrames.size() < MAX_FRAME)) {
-	    // 添加到预览数组中
+		// 添加到预览数组中
 		previewFrames.put(frame);
 		frame = NULL;
 		// 发送信号给另外一个正在处于阻塞等待状态的线程,使其脱离阻塞状态,继续执行
@@ -505,7 +505,7 @@ uvc_frame_t *UVCPreview::waitPreviewFrame() {
 	pthread_mutex_lock(&preview_mutex);
 	{
 		if (!previewFrames.size()) {
-            // 等待 preview_sync，解锁 preview_mutex
+			// 等待 preview_sync，解锁 preview_mutex
 			pthread_cond_wait(&preview_sync, &preview_mutex);
 		}
 		if (LIKELY(isRunning() && previewFrames.size() > 0)) {
@@ -521,7 +521,7 @@ void UVCPreview::clearPreviewFrame() {
 	pthread_mutex_lock(&preview_mutex);
 	{
 		for (int i = 0; i < previewFrames.size(); i++)
-		    // 放回帧池
+			// 放回帧池
 			recycle_frame(previewFrames[i]);
 		previewFrames.clear();
 	}
@@ -565,11 +565,11 @@ int UVCPreview::prepare_preview(uvc_stream_ctrl_t *ctrl) {
 			frameHeight = frame_desc->wHeight;
 			pthread_mutex_lock(&preview_mutex);
 			if (LIKELY(mPreviewWindow)) {
-			    if(rotateImage && (frameRotationAngle==90 || frameRotationAngle==270)){
-				    ANativeWindow_setBuffersGeometry(mPreviewWindow, frameHeight, frameWidth, previewFormat);
-			    }else{
-				    ANativeWindow_setBuffersGeometry(mPreviewWindow, frameWidth, frameHeight, previewFormat);
-			    }
+				if(rotateImage && (frameRotationAngle==90 || frameRotationAngle==270)){
+					ANativeWindow_setBuffersGeometry(mPreviewWindow, frameHeight, frameWidth, previewFormat);
+				}else{
+					ANativeWindow_setBuffersGeometry(mPreviewWindow, frameWidth, frameHeight, previewFormat);
+				}
 			}
 			pthread_mutex_unlock(&preview_mutex);
 		} else {
@@ -588,25 +588,25 @@ int UVCPreview::prepare_preview(uvc_stream_ctrl_t *ctrl) {
 
 // 处理图像帧
 void UVCPreview::handleFrame(uvc_frame_t *frame) {
-    if(rotateImage){
-        if(frameRotationAngle==90){
-            rotateImage->rotate_yuyv_90(frame);
-        }else if(frameRotationAngle==180){
-            rotateImage->rotate_yuyv_180(frame);
-        }else if(frameRotationAngle==270){
-            rotateImage->rotate_yuyv_270(frame);
-        }
+	if(rotateImage){
+		if(frameRotationAngle==90){
+			rotateImage->rotate_yuyv_90(frame);
+		}else if(frameRotationAngle==180){
+			rotateImage->rotate_yuyv_180(frame);
+		}else if(frameRotationAngle==270){
+			rotateImage->rotate_yuyv_270(frame);
+		}
 
-        // 需要水平镜像
-        if(frameHorizontalMirror){
-            rotateImage->horizontal_mirror_yuyv(frame);
-        }
+		// 需要水平镜像
+		if(frameHorizontalMirror){
+			rotateImage->horizontal_mirror_yuyv(frame);
+		}
 
-        // 需要垂直镜像
-        if(frameVerticalMirror){
-            rotateImage->vertical_mirror_yuyv(frame);
-        }
-    }
+		// 需要垂直镜像
+		if(frameVerticalMirror){
+			rotateImage->vertical_mirror_yuyv(frame);
+		}
+	}
 }
 
 // 执行预览
@@ -619,7 +619,7 @@ void UVCPreview::do_preview(uvc_stream_ctrl_t *ctrl) {
 		mDeviceHandle, ctrl, uvc_preview_frame_callback, (void *)this, requestBandwidth, 0);
 
 	if (LIKELY(!result)) {
-	    // 清空预览帧
+		// 清空预览帧
 		clearPreviewFrame();
 		// 创建线程执行 capture_thread_func
 		pthread_create(&capture_thread, NULL, capture_thread_func, (void *)this);
@@ -630,28 +630,28 @@ void UVCPreview::do_preview(uvc_stream_ctrl_t *ctrl) {
 		if (frameMode) {
 			// MJPEG mode
 			for ( ; LIKELY(isRunning()) ; ) {
-			    // 等待预览帧
+				// 等待预览帧
 				frame_mjpeg = waitPreviewFrame();
 				if (LIKELY(frame_mjpeg)) {
-				    // 从帧池中获取帧
-				    // frame = get_frame(frame_mjpeg->width * frame_mjpeg->height * 2);
+					// 从帧池中获取帧
+					// frame = get_frame(frame_mjpeg->width * frame_mjpeg->height * 2);
 					frame = get_frame(frame_mjpeg->width * frame_mjpeg->height << 1);
 					// 将MJPEG转为yuyv
 					result = uvc_mjpeg2yuyv(frame_mjpeg, frame);   // MJPEG => yuyv
 					// 放回帧池
 					recycle_frame(frame_mjpeg);
 					if (LIKELY(!result)) {
-                        // 处理图像帧
-                        handleFrame(frame);
+						// 处理图像帧
+						handleFrame(frame);
 
-					    // 画预览帧
-					    if (LIKELY(mPreviewWindow)) {
-						    frame = draw_preview_one(frame, &mPreviewWindow, uvc_any2rgbx, 4);
-					    }
+						// 画预览帧
+						if (LIKELY(mPreviewWindow)) {
+							frame = draw_preview_one(frame, &mPreviewWindow, uvc_any2rgbx, 4);
+						}
 						// 设置抓拍帧
 						addCaptureFrame(frame);
 					} else {
-					    // 放回帧池
+						// 放回帧池
 						recycle_frame(frame);
 					}
 				}
@@ -659,16 +659,16 @@ void UVCPreview::do_preview(uvc_stream_ctrl_t *ctrl) {
 		} else {
 			// yuyv mode
 			for ( ; LIKELY(isRunning()) ; ) {
-			    // 等待预览帧
+				// 等待预览帧
 				frame = waitPreviewFrame();
 				if (LIKELY(frame)) {
-				    // 处理图像帧
-				    handleFrame(frame);
+					// 处理图像帧
+					handleFrame(frame);
 
-				    // 画预览帧
-				    if (LIKELY(mPreviewWindow)) {
-				        frame = draw_preview_one(frame, &mPreviewWindow, uvc_any2rgbx, 4);
-				    }
+					// 画预览帧
+					if (LIKELY(mPreviewWindow)) {
+						frame = draw_preview_one(frame, &mPreviewWindow, uvc_any2rgbx, 4);
+					}
 					// 设置抓拍帧
 					addCaptureFrame(frame);
 				}
@@ -725,26 +725,26 @@ int copyToSurface(uvc_frame_t *frame, ANativeWindow **window) {
 	if (LIKELY(*window)) {
 		ANativeWindow_Buffer buffer;
 		if (LIKELY(ANativeWindow_lock(*window, &buffer, NULL) == 0)) {
-		    // source = frame data
-		    const uint8_t *src = (uint8_t *)frame->data;
-		    const int src_w = frame->width * PREVIEW_PIXEL_BYTES;
-		    const int src_step = frame->width * PREVIEW_PIXEL_BYTES;
-        	// destination = Surface(ANativeWindow)
-        	uint8_t *dest = (uint8_t *)buffer.bits;
-        	const int dest_w = buffer.width * PREVIEW_PIXEL_BYTES;
-        	const int dest_step = buffer.stride * PREVIEW_PIXEL_BYTES;
-        	// 使用较低的传输字节
-        	const int w = src_w < dest_w ? src_w : dest_w;
-        	// 使用较低的高度
-        	const int h = frame->height < buffer.height ? frame->height : buffer.height;
-        	// transfer from frame data to the Surface
-        	// 从帧数据传输到Surface
-        	// 复制帧数据
-        	copyFrame(src, dest, w, h, src_step, dest_step);
-        	ANativeWindow_unlockAndPost(*window);
-        } else {
-        	result = -1;
-        }
+			// source = frame data
+			const uint8_t *src = (uint8_t *)frame->data;
+			const int src_w = frame->width * PREVIEW_PIXEL_BYTES;
+			const int src_step = frame->width * PREVIEW_PIXEL_BYTES;
+			// destination = Surface(ANativeWindow)
+			uint8_t *dest = (uint8_t *)buffer.bits;
+			const int dest_w = buffer.width * PREVIEW_PIXEL_BYTES;
+			const int dest_step = buffer.stride * PREVIEW_PIXEL_BYTES;
+			// 使用较低的传输字节
+			const int w = src_w < dest_w ? src_w : dest_w;
+			// 使用较低的高度
+			const int h = frame->height < buffer.height ? frame->height : buffer.height;
+			// transfer from frame data to the Surface
+			// 从帧数据传输到Surface
+			// 复制帧数据
+			copyFrame(src, dest, w, h, src_step, dest_step);
+			ANativeWindow_unlockAndPost(*window);
+		} else {
+			result = -1;
+		}
 	} else {
 		result = -1;
 	}
@@ -765,10 +765,10 @@ uvc_frame_t *UVCPreview::draw_preview_one(uvc_frame_t *frame, ANativeWindow **wi
 	if (LIKELY(b)) {
 		uvc_frame_t *converted;
 		if (convert_func) {
-		    // 从帧池中获取帧
+			// 从帧池中获取帧
 			converted = get_frame(frame->width * frame->height * pixcelBytes);
 			if LIKELY(converted) {
-			    // 转换帧 按照转换函数转换
+				// 转换帧 按照转换函数转换
 				b = convert_func(frame, converted);
 				if (!b) {
 					pthread_mutex_lock(&preview_mutex);
@@ -839,15 +839,15 @@ void UVCPreview::addCaptureFrame(uvc_frame_t *frame) {
 	if (LIKELY(isRunning())) {
 		// keep only latest one
 		if (captureQueu) {
-		    // 放回帧池
+			// 放回帧池
 			recycle_frame(captureQueu);
 		}
 		captureQueu = frame;
 		pthread_cond_broadcast(&capture_sync);
 	}else {
-	    // 放回帧池
-	    recycle_frame(frame);
-    }
+		// 放回帧池
+		recycle_frame(frame);
+	}
 	pthread_mutex_unlock(&capture_mutex);
 }
 
@@ -879,7 +879,7 @@ void UVCPreview::clearCaptureFrame() {
 	pthread_mutex_lock(&capture_mutex);
 	{
 		if (captureQueu)
-		    // 放回帧池
+			// 放回帧池
 			recycle_frame(captureQueu);
 		captureQueu = NULL;
 	}
@@ -926,13 +926,13 @@ void UVCPreview::do_capture(JNIEnv *env) {
 	// 像素格式转换
 	callbackPixelFormatChanged();
 	for (; isRunning() ;) {
-	    // 标记为抓拍
+		// 标记为抓拍
 		mIsCapturing = true;
 		if (mCaptureWindow) {
-		    // 将帧数据写入Surface以进行捕获
+			// 将帧数据写入Surface以进行捕获
 			do_capture_surface(env);
 		} else {
-		    // 执行抓拍空闲循环
+			// 执行抓拍空闲循环
 			do_capture_idle_loop(env);
 		}
 		// 唤醒所有被 capture_sync 阻塞的线程
@@ -944,11 +944,11 @@ void UVCPreview::do_capture(JNIEnv *env) {
 // 执行抓拍空闲循环
 void UVCPreview::do_capture_idle_loop(JNIEnv *env) {
 	ENTER();
-	
+
 	for (; isRunning() && isCapturing() ;) {
 		do_capture_callback(env, waitCaptureFrame());
 	}
-	
+
 	EXIT();
 }
 
@@ -964,25 +964,25 @@ void UVCPreview::do_capture_surface(JNIEnv *env) {
 	char *local_picture_path;
 
 	for (; isRunning() && isCapturing() ;) {
-	    // 获取要抓拍的帧数据（如果不存在），阻塞并等待
+		// 获取要抓拍的帧数据（如果不存在），阻塞并等待
 		frame = waitCaptureFrame();
 		if (LIKELY(frame)) {
 			// frame data is always YUYV format.
 			// 帧数据始终为YUYV格式。
 			if LIKELY(isCapturing()) {
 				if (LIKELY(mCaptureWindow)) {
-                    if (UNLIKELY(!converted)) {
-                        // 从帧池中获取帧
-                        converted = get_frame(previewBytes);
-                    }
-                    if (LIKELY(converted)) {
-                        // 转为RGBA8888
-                        int b = uvc_any2rgbx(frame, converted);
-                        if (!b) {
-                            // 复制到Surface  图片颜色格式为RGBA
-                            copyToSurface(converted, &mCaptureWindow);
-                        }
-                    }
+					if (UNLIKELY(!converted)) {
+						// 从帧池中获取帧
+						converted = get_frame(previewBytes);
+					}
+					if (LIKELY(converted)) {
+						// 转为RGBA8888
+						int b = uvc_any2rgbx(frame, converted);
+						if (!b) {
+							// 复制到Surface  图片颜色格式为RGBA
+							copyToSurface(converted, &mCaptureWindow);
+						}
+					}
 				}
 			}
 			// 回调 IFrameCallback#onFrame
@@ -990,7 +990,7 @@ void UVCPreview::do_capture_surface(JNIEnv *env) {
 		}
 	}
 	if (converted) {
-	    // 放回帧池
+		// 放回帧池
 		recycle_frame(converted);
 	}
 	if (mCaptureWindow) {
@@ -1012,10 +1012,10 @@ void UVCPreview::do_capture_callback(JNIEnv *env, uvc_frame_t *frame) {
 		uvc_frame_t *callback_frame = frame;
 		if (mFrameCallbackObj) {
 			if (mFrameCallbackFunc) {
-			    // 从帧池中获取帧
+				// 从帧池中获取帧
 				callback_frame = get_frame(callbackPixelBytes);
 				if (LIKELY(callback_frame)) {
-				    // 像素格式转换
+					// 像素格式转换
 					int b = mFrameCallbackFunc(frame, callback_frame);
 					// 放回帧池
 					recycle_frame(frame);
@@ -1040,7 +1040,7 @@ void UVCPreview::do_capture_callback(JNIEnv *env, uvc_frame_t *frame) {
 			env->DeleteLocalRef(buf);
 		}
  SKIP:
-        // 放回帧池
+		// 放回帧池
 		recycle_frame(callback_frame);
 	}
 	EXIT();
@@ -1049,21 +1049,21 @@ void UVCPreview::do_capture_callback(JNIEnv *env, uvc_frame_t *frame) {
 void UVCPreview::setHorizontalMirror(int horizontalMirror){
 	frameHorizontalMirror = horizontalMirror;
 	if( frameHorizontalMirror && !rotateImage) {
-	    rotateImage = new RotateImage();
-    }
+		rotateImage = new RotateImage();
+	}
 }
 
 void UVCPreview::setVerticalMirror(int verticalMirror){
 	frameVerticalMirror = verticalMirror;
 	if( frameVerticalMirror && !rotateImage) {
-	    rotateImage = new RotateImage();
-    }
+		rotateImage = new RotateImage();
+	}
 }
 
 void UVCPreview::setCameraAngle(int cameraAngle){
 	frameRotationAngle = (360 - cameraAngle) % 360;
 	LOGW("frameRotationAngle:%d",frameRotationAngle);
 	if( frameRotationAngle && !rotateImage) {
-	    rotateImage = new RotateImage();
-    }
+		rotateImage = new RotateImage();
+	}
 }
